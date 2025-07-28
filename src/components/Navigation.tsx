@@ -48,12 +48,16 @@ const Navigation = () => {
 
           {/* CTA Buttons - Desktop */}
           <div className="hidden md:flex items-center space-x-4">
-            <Button variant="outline" size="sm">
-              Connexion Admin
-            </Button>
-            <Button variant="cta" size="sm">
-              Signaler un problème
-            </Button>
+            <a href="/auth">
+              <Button variant="outline" size="sm">
+                Connexion Admin
+              </Button>
+            </a>
+            <a href="/signaler">
+              <Button variant="cta" size="sm">
+                Signaler un problème
+              </Button>
+            </a>
           </div>
 
           {/* Mobile menu button */}
@@ -84,12 +88,16 @@ const Navigation = () => {
               </a>
             ))}
             <div className="pt-4 space-y-3 border-t border-border">
-              <Button variant="outline" className="w-full">
-                Connexion Admin
-              </Button>
-              <Button variant="cta" className="w-full">
-                Signaler un problème
-              </Button>
+              <a href="/auth">
+                <Button variant="outline" className="w-full">
+                  Connexion Admin
+                </Button>
+              </a>
+              <a href="/signaler">
+                <Button variant="cta" className="w-full">
+                  Signaler un problème
+                </Button>
+              </a>
             </div>
           </div>
         </div>
