@@ -115,7 +115,7 @@ export function useAuth() {
     try {
       // Ajouter un timeout pour éviter le blocage infini
       const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Timeout')), 10000) // 10 secondes
+        setTimeout(() => reject(new Error('Timeout')), 5000) // 5 secondes au lieu de 10
       })
       
       const fetchPromise = supabase
@@ -128,8 +128,30 @@ export function useAuth() {
 
       if (error) {
         console.error('❌ fetchUserProfile-simple: Erreur récupération profil:', error)
-        // Ne pas déconnecter automatiquement en cas d'erreur de profil
-        // setUser(null)
+        
+        // Si l'utilisateur n'existe pas, essayer de le créer
+        if (error.code === 'PGRST116') {
+          console.log('🔄 Tentative de création du profil utilisateur...')
+          const { data: newUser, error: createError } = await supabase
+            .from('users')
+            .insert({
+              id: userId,
+              email: session?.user?.email || 'unknown@email.com',
+              full_name: session?.user?.user_metadata?.full_name || 'Utilisateur',
+              role: 'citizen',
+              commune_id: session?.user?.user_metadata?.commune_id || null,
+              phone: session?.user?.user_metadata?.phone || null
+            })
+            .select()
+            .single()
+          
+          if (createError) {
+            console.error('❌ fetchUserProfile-simple: Erreur création profil:', createError)
+          } else {
+            console.log('✅ fetchUserProfile-simple: Profil créé avec succès:', newUser)
+            setUser(newUser)
+          }
+        }
       } else {
         console.log('✅ fetchUserProfile-simple: Profil récupéré avec succès:', data)
         setUser(data)
@@ -137,7 +159,6 @@ export function useAuth() {
     } catch (error) {
       console.error('❌ fetchUserProfile-simple: Erreur générale:', error)
       // Ne pas déconnecter automatiquement en cas d'erreur
-      // setUser(null)
     } finally {
       console.log('🔍 fetchUserProfile-simple: Fin, loading = false')
       setLoading(false)
