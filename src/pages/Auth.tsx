@@ -286,36 +286,36 @@ const Auth = () => {
 
               {/* Onglet Connexion */}
               <TabsContent value="login" className="space-y-4">
-                <form onSubmit={handleLogin} className="space-y-4">
-                  <div className="space-y-2">
+            <form onSubmit={handleLogin} className="space-y-4">
+              <div className="space-y-2">
                     <Label htmlFor="login-email">Email</Label>
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                      <Input
+                <div className="relative">
+                  <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input
                         id="login-email"
-                        type="email"
-                        placeholder="votre@email.com"
-                        className="pl-9"
+                    type="email"
+                    placeholder="votre@email.com"
+                    className="pl-9"
                         value={loginEmail}
                         onChange={(e) => setLoginEmail(e.target.value)}
-                        required
-                      />
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-2">
+                    required
+                  />
+                </div>
+              </div>
+              
+              <div className="space-y-2">
                     <Label htmlFor="login-password">Mot de passe</Label>
-                    <div className="relative">
-                      <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                      <Input
+                <div className="relative">
+                  <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input
                         id="login-password"
                         type={showPassword ? "text" : "password"}
-                        placeholder="••••••••"
+                    placeholder="••••••••"
                         className="pl-9 pr-9"
                         value={loginPassword}
                         onChange={(e) => setLoginPassword(e.target.value)}
-                        required
-                      />
+                    required
+                  />
                       <Button
                         type="button"
                         variant="ghost"
@@ -329,17 +329,17 @@ const Auth = () => {
                           <Eye className="h-4 w-4" />
                         )}
                       </Button>
-                    </div>
-                  </div>
-                  
-                  <Button 
-                    type="submit" 
-                    className="w-full" 
-                    variant="cta"
-                    disabled={isLoading}
-                  >
-                    {isLoading ? "Connexion..." : "Se connecter"}
-                  </Button>
+                </div>
+              </div>
+              
+              <Button 
+                type="submit" 
+                className="w-full" 
+                variant="cta"
+                disabled={isLoading}
+              >
+                {isLoading ? "Connexion..." : "Se connecter"}
+              </Button>
                 </form>
               </TabsContent>
 
@@ -601,7 +601,7 @@ const Auth = () => {
                         )}
                       </Button>
                     </div>
-                  </div>
+              </div>
                   
                   <Button 
                     type="submit" 
@@ -611,7 +611,7 @@ const Auth = () => {
                   >
                     {isLoading ? "Mise à jour..." : "Mettre à jour le mot de passe"}
                   </Button>
-                </form>
+            </form>
               </TabsContent>
             </Tabs>
             

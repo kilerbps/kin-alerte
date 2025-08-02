@@ -187,6 +187,10 @@ export function useAuth() {
   }) => {
     console.log('🔍 signUp-simple: Début inscription pour email:', email)
     try {
+      // URL de redirection pour la confirmation d'email
+      const redirectUrl = import.meta.env.VITE_AUTH_REDIRECT_URL || 
+                         `${window.location.origin}/auth?confirm=true`;
+      
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -195,7 +199,8 @@ export function useAuth() {
             full_name: userData.full_name,
             phone: userData.phone,
             commune_id: userData.commune_id,
-          }
+          },
+          emailRedirectTo: redirectUrl
         }
       })
 
@@ -215,8 +220,13 @@ export function useAuth() {
   const resetPassword = async (email: string) => {
     console.log('🔍 resetPassword-simple: Début réinitialisation pour email:', email)
     try {
+      // Utiliser l'URL de production si disponible, sinon l'origine actuelle
+      const redirectUrl = import.meta.env.VITE_AUTH_REDIRECT_URL || 
+                         import.meta.env.VITE_RESET_PASSWORD_URL || 
+                         `${window.location.origin}/auth?reset=true`;
+      
       const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth?reset=true`
+        redirectTo: redirectUrl
       })
 
       if (error) {
