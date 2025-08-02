@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { ArrowRight, MapPin, Users, TrendingUp } from "lucide-react";
+import { Link } from "react-router-dom";
 import heroKinshasa from "@/assets/hero-kinshasa.jpg";
 
 const Hero = () => {
@@ -41,21 +42,25 @@ const Hero = () => {
 
             {/* CTA Buttons */}
             <div className="flex flex-col sm:flex-row gap-4">
-              <Button 
-                variant="hero" 
-                size="lg"
-                className="group"
-              >
-                Signaler un problème
-                <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
-              </Button>
-              <Button 
-                variant="outline" 
-                size="lg"
-                className="bg-white/10 text-white border-white/30 hover:bg-white/20"
-              >
-                Découvrir la plateforme
-              </Button>
+              <Link to="/signaler">
+                <Button 
+                  variant="hero" 
+                  size="lg"
+                  className="group"
+                >
+                  Signaler un problème
+                  <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
+                </Button>
+              </Link>
+              <Link to="/apropos">
+                <Button 
+                  variant="outline" 
+                  size="lg"
+                  className="bg-white/10 text-white border-white/30 hover:bg-white/20"
+                >
+                  Découvrir la plateforme
+                </Button>
+              </Link>
             </div>
 
             {/* Problem Types */}

@@ -11,7 +11,7 @@ const Footer = () => {
 
   const contacts = [
     { icon: MapPin, text: "Kinshasa, République Démocratique du Congo" },
-    { icon: Phone, text: "+243 XX XXX XXXX" },
+    { icon: Phone, text: "+243 971 289 828" },
     { icon: Mail, text: "contact@kinshasa-alerte.cd" },
   ];
 
@@ -122,7 +122,7 @@ const Footer = () => {
         <div className="border-t border-white/20 mt-12 pt-8">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <p className="text-primary-foreground/80 text-sm">
-              © 2024 Kinshasa-Alerte. Tous droits réservés.
+              © 2025 Kinshasa-Alerte. Tous droits réservés.
             </p>
             <div className="flex space-x-6 mt-4 md:mt-0">
               <a href="#" className="text-primary-foreground/80 hover:text-primary-foreground text-sm transition-colors">
