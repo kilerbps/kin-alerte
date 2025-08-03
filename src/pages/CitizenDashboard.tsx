@@ -266,6 +266,9 @@ const CitizenDashboard = () => {
                 <h3 className="text-lg font-semibold text-gray-900">
                   Bienvenue, {user?.full_name || 'Citoyen'} !
                 </h3>
+                <p className="text-gray-600 text-sm lg:text-base mb-2">
+                  Email: {user?.email || 'Non renseigné'}
+                </p>
                 <p className="text-gray-600 text-sm lg:text-base">
                   Vous avez contribué à {stats.total} signalement{stats.total > 1 ? 's' : ''} pour améliorer Kinshasa. 
                   Continuez votre engagement citoyen !

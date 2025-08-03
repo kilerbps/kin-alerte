@@ -95,11 +95,21 @@ const Navigation = () => {
                 <div className="relative group">
                   <Button variant="ghost" size="sm" className="flex items-center space-x-2">
                     <User className="h-4 w-4" />
-                    <span>{user?.full_name || 'Utilisateur'}</span>
+                    <div className="text-left">
+                      <div className="text-sm font-medium">{user?.full_name || 'Utilisateur'}</div>
+                      <div className="text-xs text-muted-foreground">{user?.email || 'Email non renseigné'}</div>
+                    </div>
                   </Button>
                   
                   {/* Dropdown menu */}
-                  <div className="absolute right-0 top-full mt-2 w-48 bg-white border border-border rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                  <div className="absolute right-0 top-full mt-2 w-56 bg-white border border-border rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                    <div className="p-3 border-b border-border">
+                      <div className="text-sm font-medium text-gray-900">{user?.full_name || 'Utilisateur'}</div>
+                      <div className="text-xs text-gray-500">{user?.email || 'Email non renseigné'}</div>
+                      {user?.phone && (
+                        <div className="text-xs text-gray-500 mt-1">📞 {user.phone}</div>
+                      )}
+                    </div>
                     <div className="p-2">
                       {isAdmin && (
                         <Link to="/admin">
@@ -187,7 +197,11 @@ const Navigation = () => {
                     </span>
                   </div>
                   <div className="text-sm text-muted-foreground">
-                    {user?.full_name || 'Utilisateur'}
+                    <div className="font-medium">{user?.full_name || 'Utilisateur'}</div>
+                    <div className="text-xs">{user?.email || 'Email non renseigné'}</div>
+                    {user?.phone && (
+                      <div className="text-xs mt-1">📞 {user.phone}</div>
+                    )}
                   </div>
                   {isAdmin && (
                     <Link to="/admin">

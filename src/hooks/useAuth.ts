@@ -138,25 +138,48 @@ export function useAuth() {
         // Si l'utilisateur n'existe pas, essayer de le créer
         if (error.code === 'PGRST116') {
           console.log('🔄 Tentative de création du profil utilisateur...')
+          
+          // Récupérer les informations de la session
+          const { data: { session } } = await supabase.auth.getSession()
+          const userEmail = session?.user?.email || 'unknown@email.com'
+          const userMetadata = session?.user?.user_metadata || {}
+          
+          // Vérifier si l'email existe déjà
+          const { data: existingUsers, error: checkError } = await supabase
+            .from('users')
+            .select('email')
+            .eq('email', userEmail)
+          
+          let finalEmail = userEmail
+          if (!checkError && existingUsers && existingUsers.length > 0) {
+            // Email existe déjà, créer un email unique
+            const timestamp = Date.now()
+            finalEmail = `${userEmail.split('@')[0]}_${timestamp}@${userEmail.split('@')[1]}`
+            console.log(`⚠️  Email ${userEmail} existe déjà, utilisation: ${finalEmail}`)
+          }
+          
           const { data: newUser, error: createError } = await supabase
             .from('users')
             .insert({
               id: userId,
-              email: session?.user?.email || 'unknown@email.com',
-              full_name: session?.user?.user_metadata?.full_name || 'Utilisateur',
+              email: finalEmail,
+              full_name: userMetadata.full_name || 'Utilisateur',
               role: 'citizen',
-              commune_id: session?.user?.user_metadata?.commune_id || null,
-              phone: session?.user?.user_metadata?.phone || null
+              commune_id: userMetadata.commune_id || null,
+              phone: userMetadata.phone || null
             })
             .select()
             .single()
           
           if (createError) {
             console.error('❌ fetchUserProfile-simple: Erreur création profil:', createError)
+            // Ne pas déconnecter, juste afficher l'erreur
           } else {
             console.log('✅ fetchUserProfile-simple: Profil créé avec succès:', newUser)
             setUser(newUser)
           }
+        } else {
+          console.error('❌ fetchUserProfile-simple: Erreur non gérée:', error)
         }
       } else {
         console.log('✅ fetchUserProfile-simple: Profil récupéré avec succès:', data)
