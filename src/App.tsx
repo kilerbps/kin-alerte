@@ -12,7 +12,6 @@ import APropos from "./pages/APropos";
 import Stats from "./pages/Stats";
 import NotFound from "./pages/NotFound";
 import { SessionMonitor } from "@/components/SessionMonitor";
-import { ConnectionStatus } from "@/components/ConnectionStatus";
 
 const App = () => (
   <Router>
@@ -60,7 +59,6 @@ const App = () => (
       
       {/* Moniteur de session pour le debugging */}
       <SessionMonitor />
-      <ConnectionStatus />
       
       <Toaster />
     </div>
