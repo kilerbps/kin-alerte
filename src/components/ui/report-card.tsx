@@ -20,8 +20,13 @@ interface Report {
   title: string;
   description: string;
   status: 'pending' | 'in-progress' | 'resolved' | 'rejected';
-  created_at: string;
+  priority?: 'low' | 'medium' | 'high' | 'critical';
   location: string;
+  commune_id?: string;
+  problem_type_id?: string;
+  user_id?: string;
+  created_at: string;
+  updated_at?: string;
   commune?: { name: string };
   problem_type?: { name: string };
   images?: { id: string; image_url: string }[];
@@ -85,9 +90,9 @@ export const ReportCard = ({ report, onViewDetails, className = '' }: ReportCard
     setIsImageModalOpen(true);
   };
 
-  const truncatedDescription = report.description.length > 120 
-    ? `${report.description.substring(0, 120)}...` 
-    : report.description;
+  const truncatedDescription = (report.description || '').length > 120 
+    ? `${(report.description || '').substring(0, 120)}...` 
+    : (report.description || '');
 
   return (
     <>
@@ -96,7 +101,7 @@ export const ReportCard = ({ report, onViewDetails, className = '' }: ReportCard
           <div className="flex items-start justify-between">
             <div className="flex-1 min-w-0">
               <h3 className="font-semibold text-lg text-foreground group-hover:text-primary transition-colors line-clamp-2">
-                {report.title}
+                {report.title || 'Signalement sans titre'}
               </h3>
               <div className="flex items-center gap-2 mt-2">
                 <Badge className={`${statusInfo.color} border`}>
@@ -136,15 +141,15 @@ export const ReportCard = ({ report, onViewDetails, className = '' }: ReportCard
                     <img
                       src={image.image_url}
                       alt={`Preview ${index + 1}`}
-                      className="w-16 h-16 object-cover rounded-lg border border-border group-hover/image:border-primary/50 transition-colors"
+                      className="w-12 h-12 sm:w-16 sm:h-16 object-cover rounded-lg border border-border group-hover/image:border-primary/50 transition-colors"
                     />
                     <div className="absolute inset-0 bg-black/0 group-hover/image:bg-black/20 transition-colors rounded-lg flex items-center justify-center">
-                      <Eye className="h-4 w-4 text-white opacity-0 group-hover/image:opacity-100 transition-opacity" />
+                      <Eye className="h-3 w-3 sm:h-4 sm:w-4 text-white opacity-0 group-hover/image:opacity-100 transition-opacity" />
                     </div>
                   </div>
                 ))}
                 {report.images.length > 3 && (
-                  <div className="flex-shrink-0 w-16 h-16 bg-muted rounded-lg border border-border flex items-center justify-center">
+                  <div className="flex-shrink-0 w-12 h-12 sm:w-16 sm:h-16 bg-muted rounded-lg border border-border flex items-center justify-center">
                     <span className="text-xs text-muted-foreground">
                       +{report.images.length - 3}
                     </span>
@@ -155,19 +160,19 @@ export const ReportCard = ({ report, onViewDetails, className = '' }: ReportCard
           )}
 
           {/* Location and Date */}
-          <div className="flex items-center justify-between text-sm text-muted-foreground">
-            <div className="flex items-center gap-2">
-              <MapPin className="h-4 w-4" />
-              <span className="truncate max-w-[200px]">{report.location}</span>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between text-sm text-muted-foreground gap-2">
+            <div className="flex items-center gap-2 min-w-0">
+              <MapPin className="h-4 w-4 flex-shrink-0" />
+              <span className="truncate">{report.location || 'Localisation non spécifiée'}</span>
               {report.commune && (
-                <Badge variant="secondary" className="text-xs">
+                <Badge variant="secondary" className="text-xs flex-shrink-0">
                   {report.commune.name}
                 </Badge>
               )}
             </div>
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1 flex-shrink-0">
               <Calendar className="h-4 w-4" />
-              <span>{new Date(report.created_at).toLocaleDateString('fr-FR')}</span>
+              <span>{report.created_at ? new Date(report.created_at).toLocaleDateString('fr-FR') : 'Date inconnue'}</span>
             </div>
           </div>
 

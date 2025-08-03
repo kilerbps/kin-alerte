@@ -23,9 +23,13 @@ interface Report {
   title: string;
   description: string;
   status: 'pending' | 'in-progress' | 'resolved' | 'rejected';
-  created_at: string;
-  updated_at: string;
+  priority?: 'low' | 'medium' | 'high' | 'critical';
   location: string;
+  commune_id?: string;
+  problem_type_id?: string;
+  user_id?: string;
+  created_at: string;
+  updated_at?: string;
   commune?: { name: string };
   problem_type?: { name: string };
   user?: { full_name: string; email: string };
@@ -104,7 +108,7 @@ export const ReportDetailsModal = ({
             {/* Header avec statut */}
             <div className="flex items-start justify-between">
               <div className="space-y-2">
-                <h3 className="text-xl font-semibold">{report.title}</h3>
+                <h3 className="text-xl font-semibold">{report.title || 'Signalement sans titre'}</h3>
                 <div className="flex items-center gap-2">
                   <Badge className={statusInfo.color}>
                     <StatusIcon className="h-3 w-3 mr-1" />
@@ -162,7 +166,7 @@ export const ReportDetailsModal = ({
                   <div className="space-y-2">
                     <h4 className="font-medium">Description</h4>
                     <p className="text-sm text-muted-foreground leading-relaxed">
-                      {report.description}
+                      {report.description || 'Aucune description fournie'}
                     </p>
                   </div>
                 </div>
@@ -177,7 +181,7 @@ export const ReportDetailsModal = ({
                     <MapPin className="h-5 w-5 text-muted-foreground mt-0.5" />
                     <div className="space-y-1">
                       <h4 className="font-medium">Localisation</h4>
-                      <p className="text-sm text-muted-foreground">{report.location}</p>
+                      <p className="text-sm text-muted-foreground">{report.location || 'Localisation non spécifiée'}</p>
                       {report.commune && (
                         <Badge variant="secondary" className="text-xs">
                           {report.commune.name}
@@ -195,9 +199,9 @@ export const ReportDetailsModal = ({
                     <div className="space-y-1">
                       <h4 className="font-medium">Dates</h4>
                       <p className="text-sm text-muted-foreground">
-                        Créé le {new Date(report.created_at).toLocaleDateString('fr-FR')}
+                        Créé le {report.created_at ? new Date(report.created_at).toLocaleDateString('fr-FR') : 'Date inconnue'}
                       </p>
-                      {report.updated_at !== report.created_at && (
+                      {report.updated_at && report.updated_at !== report.created_at && (
                         <p className="text-sm text-muted-foreground">
                           Modifié le {new Date(report.updated_at).toLocaleDateString('fr-FR')}
                         </p>

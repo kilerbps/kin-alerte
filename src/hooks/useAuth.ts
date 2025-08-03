@@ -112,6 +112,12 @@ export function useAuth() {
   const fetchUserProfile = async (userId: string) => {
     console.log('🔍 fetchUserProfile-simple: Début pour userId:', userId)
     
+    // Éviter les appels multiples pour le même utilisateur
+    if (user && user.id === userId) {
+      console.log('🔍 fetchUserProfile-simple: Utilisateur déjà chargé, skip')
+      return;
+    }
+    
     try {
       // Ajouter un timeout pour éviter le blocage infini
       const timeoutPromise = new Promise((_, reject) => {
