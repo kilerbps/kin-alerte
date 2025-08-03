@@ -11,6 +11,7 @@ import {
   TreePine,
   Users
 } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const ProblemTypes = () => {
   const problemTypes = [
@@ -131,13 +132,15 @@ const ProblemTypes = () => {
             Votre problème ne figure pas dans la liste ? 
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Card className="p-4 bg-gradient-card border-2 border-dashed border-primary/30 hover:border-primary/50 transition-colors cursor-pointer">
-              <CardContent className="p-0 text-center">
-                <div className="text-2xl mb-2">➕</div>
-                <p className="font-medium text-primary">Autre problème</p>
-                <p className="text-sm text-muted-foreground">Signalez tout autre problème</p>
-              </CardContent>
-            </Card>
+            <Link to="/signaler">
+              <Card className="p-4 bg-gradient-card border-2 border-dashed border-primary/30 hover:border-primary/50 transition-colors cursor-pointer hover:shadow-lg">
+                <CardContent className="p-0 text-center">
+                  <div className="text-2xl mb-2">➕</div>
+                  <p className="font-medium text-primary">Autre problème</p>
+                  <p className="text-sm text-muted-foreground">Signalez tout autre problème</p>
+                </CardContent>
+              </Card>
+            </Link>
           </div>
         </div>
       </div>
