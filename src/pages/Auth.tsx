@@ -628,23 +628,6 @@ const Auth = () => {
             </div>
           </CardContent>
         </Card>
-
-        {/* Admin Access */}
-        <div className="mt-6 text-center">
-          <p className="text-white/60 text-sm mb-2">Accès administrateur</p>
-          <div className="flex gap-2 justify-center">
-            <Link to="/admin">
-              <Button variant="outline" size="sm" className="bg-white/10 border-white/30 text-white hover:bg-white/20">
-                Admin
-              </Button>
-            </Link>
-            <Link to="/bourgmestre">
-              <Button variant="outline" size="sm" className="bg-white/10 border-white/30 text-white hover:bg-white/20">
-                Bourgmestre
-              </Button>
-            </Link>
-          </div>
-        </div>
       </div>
     </div>
   );
