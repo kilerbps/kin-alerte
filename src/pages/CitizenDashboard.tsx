@@ -1,357 +1,56 @@
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
-  AlertTriangle, 
-  Clock, 
-  CheckCircle, 
-  XCircle, 
   Search, 
-  FileText,
-  MapPin,
-  Users,
-  Calendar,
+  Filter, 
+  Plus, 
+  RefreshCw,
+  TrendingUp,
+  AlertTriangle,
+  CheckCircle,
+  Clock,
+  XCircle,
+  Loader2,
   Eye,
-  MessageSquare,
-  Bell,
-  Trash2
+  BarChart3,
+  User,
+  MapPin,
+  FileText
 } from "lucide-react";
+import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/lib/supabase";
 import { Link } from "react-router-dom";
+import { ReportCard } from "@/components/ui/report-card";
+import { ReportDetailsModal } from "@/components/ui/report-details-modal";
 
 interface Report {
   id: string;
+  title: string;
   description: string;
   status: 'pending' | 'in-progress' | 'resolved' | 'rejected';
-  priority: 'low' | 'medium' | 'high' | 'critical';
-  commune_id: string;
-  problem_type_id: string;
   created_at: string;
-  user_id: string;
-  address?: string;
-  commune?: {
-    name: string;
-  };
-  problem_type?: {
-    name: string;
-  };
-  images?: {
-    id: string;
-    image_url: string;
-  }[];
+  updated_at: string;
+  location: string;
+  commune?: { name: string };
+  problem_type?: { name: string };
+  user?: { full_name: string; email: string };
+  images?: { id: string; image_url: string }[];
 }
 
 const CitizenDashboard = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [reports, setReports] = useState<Report[]>([]);
-  const [filteredReports, setFilteredReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
-  const [statusFilter, setStatusFilter] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
-
-  useEffect(() => {
-    console.log('🔍 CitizenDashboard: useEffect - user:', user?.id, 'loading:', loading);
-    
-    if (user?.id) {
-      console.log('✅ CitizenDashboard: Utilisateur connecté, démarrage des opérations');
-      fetchMyReports();
-      const cleanup = setupRealtimeSubscription();
-      
-      // Ajouter un intervalle de rafraîchissement pour s'assurer de la synchronisation
-      const refreshInterval = setInterval(() => {
-        console.log('🔄 CitizenDashboard: Rafraîchissement automatique des données');
-        fetchMyReports();
-      }, 30000); // Rafraîchir toutes les 30 secondes
-
-      return () => {
-        console.log('🧹 CitizenDashboard: Nettoyage des abonnements');
-        cleanup();
-        clearInterval(refreshInterval);
-      };
-    } else {
-      console.log('⚠️ CitizenDashboard: Utilisateur non connecté, nettoyage des données');
-      setReports([]);
-      setFilteredReports([]);
-    }
-  }, [user?.id]);
-
-  useEffect(() => {
-    filterReports();
-  }, [reports, statusFilter, searchTerm]);
-
-  const setupRealtimeSubscription = () => {
-    console.log('🔔 CitizenDashboard: Configuration de la synchronisation temps réel');
-    
-    const subscription = supabase
-      .channel('reports_changes')
-      .on(
-        'postgres_changes' as any,
-        {
-          event: '*',
-          schema: 'public',
-          table: 'reports'
-        },
-        (payload: any) => {
-          console.log('🔔 CitizenDashboard: Événement reçu:', payload.eventType, payload);
-          
-          // Vérifier si c'est un signalement de l'utilisateur connecté
-          if (payload.new?.user_id === user?.id || payload.old?.user_id === user?.id) {
-            console.log('🔔 CitizenDashboard: Changement détecté sur un signalement personnel');
-            
-            const { eventType, new: newRecord, old: oldRecord } = payload;
-            
-            switch (eventType) {
-              case 'INSERT':
-                // Nouveau signalement
-                console.log('🔔 CitizenDashboard: Nouveau signalement personnel reçu');
-                fetchMyReports();
-                break;
-                
-              case 'UPDATE':
-                // Mise à jour de statut
-                console.log('🔔 CitizenDashboard: Mise à jour de signalement personnel');
-                setReports(prev => 
-                  prev.map(report => 
-                    report.id === newRecord.id 
-                      ? { ...report, ...newRecord }
-                      : report
-                  )
-                );
-                
-                // Notification personnalisée selon l'action
-                if (newRecord.status !== oldRecord.status) {
-                  let message = '';
-                  switch (newRecord.status) {
-                    case 'in-progress':
-                      message = `Votre signalement a été approuvé et est en cours de traitement.`;
-                      break;
-                    case 'resolved':
-                      message = `Votre signalement a été résolu avec succès !`;
-                      break;
-                    case 'rejected':
-                      message = `Votre signalement n'a pas été approuvé par les autorités.`;
-                      break;
-                  }
-                  
-                  toast({
-                    title: "Mise à jour de votre signalement",
-                    description: message,
-                    variant: newRecord.status === 'rejected' ? 'destructive' : 'default'
-                  });
-                }
-                break;
-                
-              case 'DELETE':
-                // Suppression de signalement
-                console.log('🔔 CitizenDashboard: Suppression de signalement personnel');
-                setReports(prev => prev.filter(report => report.id !== oldRecord.id));
-                
-                toast({
-                  title: "Signalement supprimé",
-                  description: `Votre signalement a été supprimé.`,
-                  variant: 'default'
-                });
-                break;
-            }
-          } else {
-            console.log('🔔 CitizenDashboard: Événement ignoré (pas pour cet utilisateur)');
-          }
-        }
-      )
-      .subscribe((status) => {
-        console.log('🔔 CitizenDashboard: Statut de l\'abonnement:', status);
-      });
-
-    // Retourner une fonction de nettoyage
-    return () => {
-      console.log('🔔 CitizenDashboard: Nettoyage de la synchronisation temps réel');
-      subscription.unsubscribe();
-    };
-  };
-
-  const deleteMyReport = async (reportId: string) => {
-    if (!confirm('Êtes-vous sûr de vouloir supprimer ce signalement ? Cette action est irréversible et supprimera le signalement pour tous les utilisateurs.')) {
-      return;
-    }
-
-    try {
-      const { error } = await supabase
-        .from('reports')
-        .delete()
-        .eq('id', reportId)
-        .eq('user_id', user?.id); // Sécurité : vérifier que c'est bien le signalement de l'utilisateur
-
-      if (error) {
-        console.error('Erreur suppression signalement:', error);
-        toast({
-          title: "Erreur",
-          description: "Impossible de supprimer le signalement",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      // Mise à jour locale immédiate
-      setReports(prev => prev.filter(report => report.id !== reportId));
-
-      toast({
-        title: "Signalement supprimé",
-        description: "Votre signalement a été supprimé avec succès",
-      });
-
-    } catch (error) {
-      console.error('Erreur suppression:', error);
-      toast({
-        title: "Erreur",
-        description: "Une erreur inattendue s'est produite",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const fetchMyReports = async () => {
-    try {
-      setLoading(true);
-      
-      // Vérifier que l'utilisateur est connecté
-      if (!user?.id) {
-        console.log('⚠️ CitizenDashboard: Utilisateur non connecté ou ID manquant');
-        setReports([]);
-        return;
-      }
-      
-      console.log('🔍 CitizenDashboard: Récupération des signalements pour user:', user.id);
-      
-      // Vérifier la connexion Supabase
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      if (sessionError) {
-        console.error('❌ CitizenDashboard: Erreur session Supabase:', sessionError);
-        throw new Error('Erreur de connexion à la base de données');
-      }
-      
-      if (!session) {
-        console.log('⚠️ CitizenDashboard: Aucune session active');
-        setReports([]);
-        return;
-      }
-      
-      const { data, error } = await supabase
-        .from('reports')
-        .select(`
-          *,
-          commune:communes(name),
-          problem_type:problem_types(name),
-          images:report_images(*)
-        `)
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error('❌ CitizenDashboard: Erreur récupération signalements:', error);
-        
-        // Gérer les erreurs spécifiques
-        if (error.code === 'PGRST116') {
-          throw new Error('Erreur de connexion à la base de données. Vérifiez votre connexion internet.');
-        } else if (error.code === '42501') {
-          throw new Error('Accès refusé. Vérifiez vos permissions.');
-        } else {
-          throw new Error(`Erreur de récupération: ${error.message}`);
-        }
-      }
-
-      console.log('✅ CitizenDashboard: Signalements récupérés:', data?.length || 0);
-      setReports(data || []);
-      
-    } catch (error) {
-      console.error('❌ CitizenDashboard: Erreur lors du chargement des signalements:', error);
-      
-      // Message d'erreur plus informatif
-      let errorMessage = "Impossible de charger vos signalements";
-      if (error instanceof Error) {
-        errorMessage = error.message;
-      }
-      
-      toast({
-        title: "Erreur de chargement",
-        description: errorMessage,
-        variant: "destructive"
-      });
-      
-      // En cas d'erreur, vider la liste
-      setReports([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const filterReports = () => {
-    let filtered = reports;
-
-    if (statusFilter !== "all") {
-      filtered = filtered.filter(report => report.status === statusFilter);
-    }
-
-    if (searchTerm) {
-      filtered = filtered.filter(report =>
-        report.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (report.address && report.address.toLowerCase().includes(searchTerm.toLowerCase()))
-      );
-    }
-
-    setFilteredReports(filtered);
-  };
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'pending': return <Clock className="h-4 w-4 text-orange-500" />;
-      case 'in-progress': return <AlertTriangle className="h-4 w-4 text-blue-500" />;
-      case 'resolved': return <CheckCircle className="h-4 w-4 text-green-500" />;
-      case 'rejected': return <XCircle className="h-4 w-4 text-red-500" />;
-      default: return <Clock className="h-4 w-4 text-gray-500" />;
-    }
-  };
-
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'pending': return <Badge variant="secondary">En attente</Badge>;
-      case 'in-progress': return <Badge variant="default">En cours</Badge>;
-      case 'resolved': return <Badge variant="default" className="bg-green-100 text-green-800">Résolu</Badge>;
-      case 'rejected': return <Badge variant="destructive">Rejeté</Badge>;
-      default: return <Badge variant="outline">Inconnu</Badge>;
-    }
-  };
-
-  const getPriorityBadge = (priority: string) => {
-    switch (priority) {
-      case 'low': return <Badge variant="outline" className="bg-green-50 text-green-700">Faible</Badge>;
-      case 'medium': return <Badge variant="outline" className="bg-yellow-50 text-yellow-700">Moyenne</Badge>;
-      case 'high': return <Badge variant="outline" className="bg-orange-50 text-orange-700">Élevée</Badge>;
-      case 'critical': return <Badge variant="outline" className="bg-red-50 text-red-700">Critique</Badge>;
-      default: return <Badge variant="outline">Inconnue</Badge>;
-    }
-  };
-
-  const getStatusMessage = (status: string) => {
-    switch (status) {
-      case 'pending': return "Votre signalement est en attente d'examen par les autorités.";
-      case 'in-progress': return "Votre signalement a été approuvé et est en cours de traitement.";
-      case 'resolved': return "Votre signalement a été résolu avec succès !";
-      case 'rejected': return "Votre signalement n'a pas été approuvé par les autorités.";
-      default: return "Statut inconnu.";
-    }
-  };
-
-  const getReportTitle = (description: string) => {
-    // Extraire un titre court de la description
-    const words = description.split(' ');
-    if (words.length <= 8) return description;
-    return words.slice(0, 8).join(' ') + '...';
-  };
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [selectedReport, setSelectedReport] = useState<Report | null>(null);
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
 
   const stats = {
     total: reports.length,
@@ -361,255 +60,267 @@ const CitizenDashboard = () => {
     rejected: reports.filter(r => r.status === 'rejected').length,
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
+  const fetchMyReports = async () => {
+    if (!user) return;
+
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('reports')
+        .select(`
+          *,
+          commune:communes(name),
+          problem_type:problem_types(name),
+          user:users(full_name, email),
+          images:report_images(*)
+        `)
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setReports(data || []);
+    } catch (error) {
+      console.error('Erreur lors de la récupération de mes signalements:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de récupérer vos signalements",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchMyReports();
+  }, [user]);
+
+  const filteredReports = reports.filter(report => {
+    const matchesSearch = report.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         report.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         report.location.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = statusFilter === "all" || report.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
+
+  const handleViewDetails = (report: Report) => {
+    setSelectedReport(report);
+    setIsDetailsModalOpen(true);
+  };
 
   return (
-    <div className="min-h-screen bg-gradient-hero p-6">
-      <div className="max-w-6xl mx-auto">
-        {/* En-tête */}
+    <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-white mb-2">
-            Mon Tableau de Bord
-          </h1>
-          <p className="text-white/80">
-            Suivez l'état de vos signalements en temps réel
-          </p>
-          <p className="text-sm text-white/60 mt-2">
-            Utilisateur: {user?.full_name} (ID: {user?.id})
-          </p>
-        </div>
-
-        {/* Statistiques */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
-          <Card className="shadow-glow border-white/20 bg-white/95 backdrop-blur-md">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total</CardTitle>
-              <FileText className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.total}</div>
-            </CardContent>
-          </Card>
-
-          <Card className="shadow-glow border-white/20 bg-white/95 backdrop-blur-md">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">En attente</CardTitle>
-              <Clock className="h-4 w-4 text-orange-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-orange-600">{stats.pending}</div>
-            </CardContent>
-          </Card>
-
-          <Card className="shadow-glow border-white/20 bg-white/95 backdrop-blur-md">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">En cours</CardTitle>
-              <AlertTriangle className="h-4 w-4 text-blue-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-blue-600">{stats.inProgress}</div>
-            </CardContent>
-          </Card>
-
-          <Card className="shadow-glow border-white/20 bg-white/95 backdrop-blur-md">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Résolus</CardTitle>
-              <CheckCircle className="h-4 w-4 text-green-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-green-600">{stats.resolved}</div>
-            </CardContent>
-          </Card>
-
-          <Card className="shadow-glow border-white/20 bg-white/95 backdrop-blur-md">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Rejetés</CardTitle>
-              <XCircle className="h-4 w-4 text-red-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-red-600">{stats.rejected}</div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Actions rapides */}
-        <Card className="mb-8 shadow-glow border-white/20 bg-white/95 backdrop-blur-md">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Bell className="h-5 w-5" />
-              Actions Rapides
-            </CardTitle>
-            <CardDescription>
-              Gérez vos signalements et restez informé
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-wrap gap-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Mon Tableau de Bord</h1>
+              <p className="text-gray-600 mt-2">
+                Suivez l'évolution de vos signalements et contribuez à l'amélioration de Kinshasa
+              </p>
+            </div>
+            <div className="flex items-center gap-3">
+              <Button
+                variant="outline"
+                onClick={fetchMyReports}
+                disabled={loading}
+                className="flex items-center gap-2"
+              >
+                <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                Actualiser
+              </Button>
               <Link to="/signaler">
-                <Button className="flex items-center gap-2 shadow-glow">
-                  <AlertTriangle className="h-4 w-4" />
+                <Button className="flex items-center gap-2 bg-primary hover:bg-primary/90">
+                  <Plus className="h-4 w-4" />
                   Nouveau Signalement
                 </Button>
               </Link>
-              
-              <Button variant="outline" className="flex items-center gap-2 bg-white/50 backdrop-blur-sm border-white/20">
-                <MessageSquare className="h-4 w-4" />
-                Contacter le Support
-              </Button>
-              
-              <Button variant="outline" className="flex items-center gap-2 bg-white/50 backdrop-blur-sm border-white/20">
-                <Eye className="h-4 w-4" />
-                Voir les Statistiques
-              </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
+          <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-blue-100 text-sm font-medium">Total</p>
+                  <p className="text-3xl font-bold">{stats.total}</p>
+                </div>
+                <FileText className="h-8 w-8 text-blue-200" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-r from-yellow-500 to-yellow-600 text-white">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-yellow-100 text-sm font-medium">En attente</p>
+                  <p className="text-3xl font-bold">{stats.pending}</p>
+                </div>
+                <Clock className="h-8 w-8 text-yellow-200" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-blue-100 text-sm font-medium">En cours</p>
+                  <p className="text-3xl font-bold">{stats.inProgress}</p>
+                </div>
+                <Loader2 className="h-8 w-8 text-blue-200" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-r from-green-500 to-green-600 text-white">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-green-100 text-sm font-medium">Résolus</p>
+                  <p className="text-3xl font-bold">{stats.resolved}</p>
+                </div>
+                <CheckCircle className="h-8 w-8 text-green-200" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-r from-red-500 to-red-600 text-white">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-red-100 text-sm font-medium">Rejetés</p>
+                  <p className="text-3xl font-bold">{stats.rejected}</p>
+                </div>
+                <XCircle className="h-8 w-8 text-red-200" />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Welcome Card */}
+        <Card className="mb-6 bg-gradient-to-r from-primary/5 to-primary/10 border-primary/20">
+          <CardContent className="p-6">
+            <div className="flex items-center gap-4">
+              <div className="flex-shrink-0">
+                <div className="w-12 h-12 bg-primary/20 rounded-full flex items-center justify-center">
+                  <User className="h-6 w-6 text-primary" />
+                </div>
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Bienvenue, {user?.full_name || 'Citoyen'} !
+                </h3>
+                <p className="text-gray-600">
+                  Vous avez contribué à {stats.total} signalement{stats.total > 1 ? 's' : ''} pour améliorer Kinshasa. 
+                  Continuez votre engagement citoyen !
+                </p>
+              </div>
+              <div className="flex-shrink-0">
+                <Link to="/signaler">
+                  <Button className="bg-primary hover:bg-primary/90">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Nouveau Signalement
+                  </Button>
+                </Link>
+              </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Filtres */}
-        <div className="flex flex-col sm:flex-row gap-4 mb-6">
-          <div className="flex-1">
-            <Input
-              placeholder="Rechercher dans vos signalements..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="max-w-sm bg-white/95 backdrop-blur-md border-white/20"
-            />
-          </div>
-          
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-3 py-2 border border-white/20 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white/95 backdrop-blur-md"
-          >
-            <option value="all">Tous les statuts</option>
-            <option value="pending">En attente</option>
-            <option value="in-progress">En cours</option>
-            <option value="resolved">Résolu</option>
-            <option value="rejected">Rejeté</option>
-          </select>
-        </div>
+        {/* Filters */}
+        <Card className="mb-6">
+          <CardContent className="p-6">
+            <div className="flex flex-col sm:flex-row gap-4">
+              <div className="flex-1 relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <Input
+                  placeholder="Rechercher dans vos signalements..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-full sm:w-[200px]">
+                  <SelectValue placeholder="Filtrer par statut" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tous les statuts</SelectItem>
+                  <SelectItem value="pending">En attente</SelectItem>
+                  <SelectItem value="in-progress">En cours</SelectItem>
+                  <SelectItem value="resolved">Résolus</SelectItem>
+                  <SelectItem value="rejected">Rejetés</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </CardContent>
+        </Card>
 
-        {/* Liste des Signalements */}
-        <Card className="shadow-glow border-white/20 bg-white/95 backdrop-blur-md">
-          <CardHeader>
-            <CardTitle>Mes Signalements ({filteredReports.length})</CardTitle>
-            <CardDescription>
-              Suivi en temps réel de vos signalements
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {filteredReports.length === 0 ? (
-              <div className="text-center py-8">
-                <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-500 mb-4">
-                  {reports.length === 0 
-                    ? "Vous n'avez pas encore de signalements. Commencez par en créer un !"
-                    : "Aucun signalement ne correspond à vos filtres."
-                  }
-                </p>
-                {reports.length === 0 && (
+        {/* Reports Grid */}
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="text-center">
+              <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
+              <p className="text-gray-600">Chargement de vos signalements...</p>
+            </div>
+          </div>
+        ) : filteredReports.length === 0 ? (
+          <Card>
+            <CardContent className="p-12 text-center">
+              {reports.length === 0 ? (
+                <>
+                  <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">Aucun signalement encore</h3>
+                  <p className="text-gray-600 mb-6">
+                    Vous n'avez pas encore créé de signalement. Commencez par signaler un problème dans votre quartier !
+                  </p>
                   <Link to="/signaler">
-                    <Button className="shadow-glow">
+                    <Button className="bg-primary hover:bg-primary/90">
+                      <Plus className="h-4 w-4 mr-2" />
                       Créer mon premier signalement
                     </Button>
                   </Link>
-                )}
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {filteredReports.map((report) => (
-                  <div
-                    key={report.id}
-                    className="border border-white/20 rounded-lg p-6 hover:bg-white/10 transition-colors bg-white/50 backdrop-blur-sm"
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-3">
-                          {getStatusIcon(report.status)}
-                          <h3 className="font-semibold text-lg">{getReportTitle(report.description)}</h3>
-                        </div>
-                        
-                        <p className="text-gray-700 mb-4">{report.description}</p>
-                        
-                        {/* Affichage des images */}
-                        {report.images && report.images.length > 0 && (
-                          <div className="mb-4">
-                            <p className="text-sm text-gray-600 mb-2">Images ({report.images.length})</p>
-                            <div className="flex gap-2 overflow-x-auto">
-                              {report.images.map((image, index) => (
-                                <img
-                                  key={image.id}
-                                  src={image.image_url}
-                                  alt={`Image ${index + 1}`}
-                                  className="w-20 h-20 object-cover rounded-lg border border-white/20"
-                                  onError={(e) => {
-                                    e.currentTarget.style.display = 'none';
-                                  }}
-                                />
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                        
-                        <div className="flex items-center gap-4 text-sm text-gray-600 mb-3">
-                          {report.address && (
-                            <span className="flex items-center gap-1">
-                              <MapPin className="h-4 w-4" />
-                              {report.address}
-                            </span>
-                          )}
-                          <span className="flex items-center gap-1">
-                            <Users className="h-4 w-4" />
-                            {report.commune?.name || 'Commune inconnue'}
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <Users className="h-4 w-4" />
-                            {report.problem_type?.name || 'Type inconnu'}
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <Calendar className="h-4 w-4" />
-                            {new Date(report.created_at).toLocaleDateString('fr-FR')}
-                          </span>
-                        </div>
-                        
-                        <div className="flex gap-2 mb-3">
-                          {getStatusBadge(report.status)}
-                          {getPriorityBadge(report.priority)}
-                        </div>
-                        
-                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                          <p className="text-sm text-blue-800">
-                            {getStatusMessage(report.status)}
-                          </p>
-                        </div>
-                      </div>
-                      
-                      {/* Bouton de suppression */}
-                      <div className="ml-4">
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => deleteMyReport(report.id)}
-                          className="flex items-center gap-2"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                          Supprimer
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                </>
+              ) : (
+                <>
+                  <Search className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">Aucun signalement trouvé</h3>
+                  <p className="text-gray-600">
+                    Aucun de vos signalements ne correspond à vos critères de recherche.
+                  </p>
+                </>
+              )}
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredReports.map((report) => (
+              <ReportCard
+                key={report.id}
+                report={report}
+                onViewDetails={handleViewDetails}
+              />
+            ))}
+          </div>
+        )}
       </div>
+
+      {/* Details Modal */}
+      <ReportDetailsModal
+        report={selectedReport}
+        isOpen={isDetailsModalOpen}
+        onClose={() => {
+          setIsDetailsModalOpen(false);
+          setSelectedReport(null);
+        }}
+        isAdmin={false}
+      />
     </div>
   );
 };
